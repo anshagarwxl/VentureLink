@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 
 # 🚀 VentureLink - Startup Investor Platform
 
