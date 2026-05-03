@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - VentureLink{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card { border: none; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); transition: transform 0.3s; }
+    .stats-card:hover { transform: translateY(-5px); }
+    .welcome-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; padding: 30px; }
+    .menu-card { border: none; border-radius: 15px; height: 100%; transition: all 0.3s; cursor: pointer; }
+    .menu-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+    .menu-icon { width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .info-item { padding: 15px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; }
+    .info-item:hover { background: #e9ecef; }
+    .tab-btn { border: none; background: transparent; padding: 10px 20px; font-weight: 500; color: #6c757d; }
+    .tab-btn.active { background: #667eea; color: white; border-radius: 10px; }
+    .activity-item { padding: 15px; border-bottom: 1px solid #e5e7eb; }
+    .activity-item:last-child { border-bottom: none; }
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if role == 'startup' %}
+    <!-- Startup Dashboard -->
+    <div class="welcome-card mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2"><i class="fas fa-rocket me-2"></i>Welcome, {{ my_startup.name if my_startup else 'Founder' }}!</h2>
+                <p class="mb-0 opacity-75">Here's what's happening with your startup today.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div style="font-size: 3rem; opacity: 0.3;"><i class="fas fa-building"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stats-card card p-3 text-center">
+                <i class="fas fa-eye text-primary mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="mb-0">1,247</h4>
+                <small class="text-muted">Profile Views</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card card p-3 text-center">
+                <i class="fas fa-hand-holding-usd text-success mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="mb-0">${{ "{:,.0f}".format(my_startup.valuation if my_startup else 0) }}</h4>
+                <small class="text-muted">Valuation</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card card p-3 text-center">
+                <i class="fas fa-envelope text-info mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="mb-0">23</h4>
+                <small class="text-muted">Messages</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card card p-3 text-center">
+                <i class="fas fa-users text-warning mb-2" style="font-size: 1.5rem;"></i>
+                <h4 class="mb-0">12</h4>
+                <small class="text-muted">Team Size</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <a href="/startups" class="text-decoration-none">
+                <div class="menu-card card p-3 text-center">
+                    <div class="menu-icon bg-primary text-white mx-auto mb-2"><i class="fas fa-edit"></i></div>
+                    <h6>Edit Profile</h6>
+                    <small class="text-muted">Update details</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <div class="menu-card card p-3 text-center" data-bs-toggle="modal" data-bs-target="#teamModal">
+                <div class="menu-icon bg-success text-white mx-auto mb-2"><i class="fas fa-user-plus"></i></div>
+                <h6>Add Team Member</h6>
+                <small class="text-muted">Grow your team</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="menu-card card p-3 text-center" data-bs-toggle="modal" data-bs-target="#pitchModal">
+                <div class="menu-icon bg-warning text-white mx-auto mb-2"><i class="fas fa-video"></i></div>
+                <h6>Video Pitch</h6>
+                <small class="text-muted">Record intro</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="menu-card card p-3 text-center">
+                <div class="menu-icon bg-info text-white mx-auto mb-2"><i class="fas fa-chart-line"></i></div>
+<h6><a href="/analytics">Analytics</a></h6>
+                <small class="text-muted">View insights</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs & Content -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="tab-btn active">Overview</button>
+<a href="/investors" class="tab-btn">Investors</a>
+                        <a href="/startup_messages" class="tab-btn">Messages</a>
+                        <a href="/documents" class="tab-btn">Documents</a>
+                        <button class="tab-btn">Documents</button>
+                    </div>
+                    
+                    {% if my_startup %}
+                    <h5 class="mb-3">{{ my_startup.name }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <small class="text-muted">Stage</small>
+                                <div class="fw-bold">{{ my_startup.stage }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <small class="text-muted">Location</small>
+                                <div class="fw-bold">{{ my_startup.city }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No startup selected. Register or login with your startup.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Feed -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="fas fa-bell me-2"></i>Recent Activity</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="activity-item">
+                        <small class="text-muted">2 hours ago</small>
+                        <div class="small">New investor viewed your profile</div>
+                    </div>
+                    <div class="activity-item">
+                        <small class="text-muted">Yesterday</small>
+                        <div class="small">Received investment inquiry</div>
+                    </div>
+                    <div class="activity-item">
+                        <small class="text-muted">2 days ago</small>
+                        <div class="small">Profile updated</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div class="modal fade" id="teamModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Team Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" placeholder="Full name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select class="form-select">
+                            <option>Co-Founder</option>
+                            <option>CTO</option>
+                            <option>CFO</option>
+                            <option>Advisor</option>
+                            <option>Team Member</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" placeholder="email@example.com">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Add Member</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pitch Modal -->
+    <div class="modal fade" id="pitchModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Video Pitch</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-5">
+                    <i class="fas fa-video text-muted mb-3" style="font-size: 4rem;"></i>
+                    <h5>Upload Your Pitch Video</h5>
+                    <p class="text-muted">Share a 2-3 minute video explaining your startup</p>
+                    <button class="btn btn-primary"><i class="fas fa-upload me-2"></i>Upload Video</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Investor Dashboard -->
+    <div class="welcome-card mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2"><i class="fas fa-search-dollar me-2"></i>Welcome, Investor!</h2>
+                <p class="mb-0 opacity-75">Discover amazing startups and make valuable investments.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div style="font-size: 3rem; opacity: 0.3;"><i class="fas fa-chart-pie"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stats-card card p-4 text-center text-white" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <h2 class="mb-0">{{ total_startups }}</h2>
+                <p class="mb-0">Startups Available</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card card p-4 text-center">
+                <i class="fas fa-building text-primary mb-2" style="font-size: 2rem;"></i>
+                <h4 class="mb-0">{{ total_startups }}</h4>
+                <p class="text-muted mb-0">Active Deals</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card card p-4 text-center">
+                <i class="fas fa-envelope text-success mb-2" style="font-size: 2rem;"></i>
+                <h4 class="mb-0">5</h4>
+                <p class="text-muted mb-0">New Inquiries</p>
+            </div>
+        </div>
+    </div>
+
+<!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <a href="/investors" class="text-decoration-none">
+                <div class="menu-card card p-4 text-center">
+                    <div class="menu-icon bg-primary text-white mx-auto mb-2"><i class="fas fa-search"></i></div>
+                    <h5>Browse Startups</h5>
+                    <small class="text-muted">Find investments</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/investors" class="text-decoration-none">
+                <div class="menu-card card p-4 text-center">
+                    <div class="menu-icon bg-success text-white mx-auto mb-2"><i class="fas fa-filter"></i></div>
+                    <h5>Filters</h5>
+                    <small class="text-muted">Refine search</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/saved" class="text-decoration-none">
+                <div class="menu-card card p-4 text-center">
+                    <div class="menu-icon bg-warning text-white mx-auto mb-2"><i class="fas fa-bookmark"></i></div>
+                    <h5>Saved</h5>
+                    <small class="text-muted">Your shortlist</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a href="/messages" class="text-decoration-none">
+                <div class="menu-card card p-4 text-center">
+                    <div class="menu-icon bg-info text-white mx-auto mb-2"><i class="fas fa-envelope"></i></div>
+                    <h5>Messages</h5>
+                    <small class="text-muted">{{ total_startups }} new</small>
+                </div>
+            </a>
+        </div>
+    </div>
+
+<!-- Featured Opportunities -->
+    <div class="card">
+        <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-star me-2 text-warning"></i>Featured Opportunities</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for s in startups[:3] %}
+                <div class="col-md-4">
+                    <a href="/startup/{{ s.startup_id }}" class="text-decoration-none">
+                        <div class="info-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>{{ s.name }}</strong>
+                                <span class="badge {% if s.stage == 'Seed' %}badge-success{% elif s.stage == 'Series A' %}badge-warning{% else %}badge-info{% endif %}">{{ s.stage }}</span>
+                            </div>
+                            <small class="text-muted">${{ "{:,.0f}".format(s.valuation) }}</small>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-3">
+                <a href="/investors" class="btn btn-outline-primary">View All Startups <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

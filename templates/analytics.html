@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Analytics - VentureLink{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card { border: none; border-radius: 15px; }
+    .chart-placeholder { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; height: 300px; display: flex; align-items: center; justify-content: center; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-chart-line me-2 text-primary"></i>Analytics</h2>
+            <p class="text-muted">Track your startup's performance</p>
+        </div>
+        <a href="/dashboard" class="btn btn-outline-primary">Back to Dashboard</a>
+    </div>
+
+    {% if role == 'startup' and my_startup %}
+    <!-- Startup Analytics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-eye text-primary mb-2" style="font-size: 2rem;"></i>
+                <h3>1,245</h3>
+                <p class="text-muted mb-0">Total Views</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-user-plus text-success mb-2" style="font-size: 2rem;"></i>
+                <h3>{{ investor_count }}</h3>
+                <p class="text-muted mb-0">Investor Interests</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-envelope text-warning mb-2" style="font-size: 2rem;"></i>
+                <h3>28</h3>
+                <p class="text-muted mb-0">Messages</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-clock text-info mb-2" style="font-size: 2rem;"></i>
+                <h3>156</h3>
+                <p class="text-muted mb-0">Profile Visits</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="card p-4">
+                <h5 class="mb-3">Views Over Time</h5>
+                <div class="chart-placeholder text-white">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line" style="font-size: 3rem;"></i>
+                        <p class="mb-0">Monthly Views Chart</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5 class="mb-3">Investor Activity</h5>
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-pie text-success" style="font-size: 3rem;"></i>
+                    <p class="mt-2">12 investors viewed your profile this month</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% elif role == 'investor' %}
+    <!-- Investor Analytics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-building text-primary mb-2" style="font-size: 2rem;"></i>
+                <h3>{{ total_startups }}</h3>
+                <p class="text-muted mb-0">Startups</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-users text-success mb-2" style="font-size: 2rem;"></i>
+                <h3>{{ total_investors }}</h3>
+                <p class="text-muted mb-0">Investors</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-dollar-sign text-warning mb-2" style="font-size: 2rem;"></i>
+                <h3>${{ "{:,.0f}".format(avg_valuation) }}</h3>
+                <p class="text-muted mb-0">Avg Valuation</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card card p-4 text-center">
+                <i class="fas fa-hand-holding-usd text-info mb-2" style="font-size: 2rem;"></i>
+                <h3>$2.5M</h3>
+                <p class="text-muted mb-0">Avg Deal Size</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h5 class="mb-3">Investment Trends</h5>
+                <div class="chart-placeholder text-white" style="height: 250px;">
+                    <div class="text-center">
+                        <i class="fas fa-chart-area" style="font-size: 3rem;"></i>
+                        <p class="mb-0">Trends Chart</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h5 class="mb-3">Top Sectors</h5>
+                <div class="text-center py-4">
+                    <i class="fas fa-chart-bar text-primary" style="font-size: 3rem;"></i>
+                    <p class="mt-2">Fintech, HealthTech, AI/ML leading sectors</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Messages - VentureLink{% endblock %}
+
+{% block extra_css %}
+<style>
+    .msg-card { border: none; border-radius: 15px; transition: all 0.3s; }
+    .msg-card:hover { background: #f8f9fa; }
+    .unread { border-left: 4px solid #667eea; }
+    .avatar { width: 45px; height: 45px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="fas fa-envelope me-2 text-primary"></i>Messages</h2>
+            <p class="text-muted">Investor inquiries and updates</p>
+        </div>
+        <a href="/dashboard" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-2"></i>Back</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white border-0">
+                    <strong>Inbox</strong>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for m in messages %}
+                    <a href="#" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ m.from }}</strong>
+                            <small class="text-muted">{{ m.time }}</small>
+                        </div>
+                        <small class="text-muted">{{ m.subject }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card p-4 text-center">
+                <i class="fas fa-comments text-muted mb-3" style="font-size: 4rem;"></i>
+                <h4>Select a message</h4>
+                <p class="text-muted">Choose from the list to view conversation</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
