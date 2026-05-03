@@ -1,10 +1,19 @@
+# ========================================
+# VENTURELINK FLASK APPLICATION
+# Full-stack startup-investor platform with role-based access
+# ========================================
+
 from flask import Flask, render_template, request, redirect, session, flash
 import mysql.connector
 
+# Flask app initialization with secret key for session security
 app = Flask(__name__)
 app.secret_key = "venturelink_secret_key_2024"
 
-# Database connection
+# ========================================
+# DATABASE CONNECTION
+# ========================================
+# Connect to MySQL database 'venturelink' with existing schema
 db = mysql.connector.connect(
     host="127.0.0.1",
     user="root",
@@ -14,7 +23,10 @@ db = mysql.connector.connect(
 cursor = db.cursor(dictionary=True)
 
 
-# 🔐 Login page
+# ========================================
+# 1. LOGIN ROUTE (HOME PAGE)
+# Handles role selection (Startup/Investor) and startup ID assignment
+# ========================================
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -22,6 +34,7 @@ def login():
         session['role'] = role
         
         if role == 'startup':
+            # STARTUP ROLE: Requires startup selection from database
             startup_id = request.form.get('startup_id')
             if startup_id:
                 session['startup_id'] = int(startup_id)
@@ -31,31 +44,35 @@ def login():
         
         return redirect('/dashboard')
     
+    # GET: Load all startups for selection dropdown
     cursor.execute("SELECT startup_id, name FROM Startups ORDER BY name")
     all_startups = cursor.fetchall()
     return render_template('login.html', startups=all_startups)
 
 
-# 🔷 Dashboard
+# ========================================
+# 2. DASHBOARD - ROLE BASED
+# Different content for Startup vs Investor roles
+# ========================================
 @app.route('/dashboard')
 def dashboard():
     role = session.get('role')
     
     if not role:
-        return redirect('/')
+        return redirect('/')  # Redirect unauthenticated users
     
-    # Get counts
+    # Get global statistics for both roles
     cursor.execute("SELECT COUNT(*) as count FROM Startups")
     total_startups = cursor.fetchone()['count']
     
     cursor.execute("SELECT COUNT(*) as count FROM Investors")
     total_investors = cursor.fetchone()['count']
     
-    # Get featured startups for investor
+    # Featured startups for investor dashboard (random selection)
     cursor.execute("SELECT * FROM Startups ORDER BY RAND() LIMIT 3")
     featured_startups = cursor.fetchall()
     
-    # Get startup details for startup role
+    # STARTUP ROLE: Load user's startup details
     my_startup = None
     if role == 'startup':
         startup_id = session.get('startup_id')
@@ -63,6 +80,7 @@ def dashboard():
             cursor.execute("SELECT * FROM Startups WHERE startup_id = %s", (startup_id,))
             my_startup = cursor.fetchone()
     
+    # Load all startups for dropdown
     cursor.execute("SELECT startup_id, name FROM Startups ORDER BY name")
     all_startups = cursor.fetchall()
     
@@ -75,7 +93,10 @@ def dashboard():
                       startups=featured_startups)
 
 
-# 🔷 Startups page
+# ========================================
+# 3. STARTUPS MANAGEMENT PAGE
+# Role-based CRUD operations with ownership check
+# ========================================
 @app.route('/startups')
 def startups():
     role = session.get('role')
@@ -89,13 +110,15 @@ def startups():
     return render_template('startups.html', startups=data, role=role)
 
 
-# 🔷 Add startup
+# ========================================
+# 4. ADD NEW STARTUP (STARTUP ROLE ONLY)
+# ========================================
 @app.route('/add', methods=['POST'])
 def add():
     role = session.get('role')
     
     if role != 'startup':
-        flash('Access denied', 'danger')
+        flash('Access denied - Only startups can add', 'danger')
         return redirect('/startups')
     
     try:
@@ -107,45 +130,51 @@ def add():
         db.commit()
         flash('Startup added successfully!', 'success')
     except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
+        flash(f'Database error: {str(e)}', 'danger')
     
     return redirect('/startups')
 
 
-# 🔷 Delete startup
+# ========================================
+# 5. DELETE STARTUP (OWNERSHIP CHECK)
+# Startup can only delete their own startup
+# ========================================
 @app.route('/delete/<int:id>')
 def delete(id):
     role = session.get('role')
     
     if role != 'startup':
-        flash('Access denied', 'danger')
+        flash('Access denied - Investors cannot delete', 'danger')
         return redirect('/startups')
     
     startup_id = session.get('startup_id')
     
     if startup_id != id:
-        flash('You can only delete your own startup', 'danger')
+        flash('Ownership violation - You can only delete your own startup', 'danger')
         return redirect('/startups')
     
     cursor.execute("DELETE FROM Startups WHERE startup_id=%s", (id,))
     db.commit()
-    flash('Startup deleted!', 'success')
+    flash('Startup deleted successfully!', 'success')
     return redirect('/startups')
 
 
-# 🔷 Update startup
+# ========================================
+# 6. UPDATE STARTUP (OWNERSHIP CHECK)
+# Startup can only update their own startup
+# ========================================
 @app.route('/update/<int:id>', methods=['POST'])
 def update(id):
     role = session.get('role')
     
     if role != 'startup':
-        flash('Access denied', 'danger')
+        flash('Access denied - Investors cannot update', 'danger')
         return redirect('/startups')
     
     startup_id = session.get('startup_id')
     
     if startup_id != id:
-        flash('You can only edit your own startup', 'danger')
+        flash('Ownership violation - You can only edit your own startup', 'danger')
         return redirect('/startups')
     
     cursor.execute(
@@ -154,11 +183,14 @@ def update(id):
          request.form['stage'], request.form['valuation'], id)
     )
     db.commit()
-    flash('Startup updated!', 'success')
+    flash('Startup updated successfully!', 'success')
     return redirect('/startups')
 
 
-# 🔷 Investor View
+# ========================================
+# 7. INVESTOR VIEW WITH FILTERS
+# Multi-filter system: stage, city, valuation range
+# ========================================
 @app.route('/investors')
 def investors():
     role = session.get('role')
@@ -166,11 +198,13 @@ def investors():
     if not role or role != 'investor':
         return redirect('/dashboard')
     
+    # Get filter parameters from URL query string
     stage = request.args.get('stage', '')
     city = request.args.get('city', '')
     min_val = request.args.get('min_val', '')
     max_val = request.args.get('max_val', '')
     
+    # Build dynamic SQL query with filters
     query = "SELECT * FROM Startups WHERE 1=1"
     params = []
     
@@ -195,6 +229,7 @@ def investors():
     cursor.execute(query, params)
     data = cursor.fetchall()
     
+    # Get unique cities for filter dropdown
     cursor.execute("SELECT DISTINCT city FROM Startups ORDER BY city")
     cities = cursor.fetchall()
     
@@ -207,7 +242,10 @@ def investors():
                       max_val=max_val)
 
 
-# 🔷 Detail Page
+# ========================================
+# 8. STARTUP DETAIL VIEW
+# Individual startup information page
+# ========================================
 @app.route('/startup/<int:id>')
 def detail(id):
     role = session.get('role')
@@ -225,15 +263,19 @@ def detail(id):
     return render_template('detail.html', s=data, role=role)
 
 
-# 🔷 Logout
+# ========================================
+# 9. LOGOUT - SESSION CLEAR
+# ========================================
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('Logged out!', 'success')
+    flash('Logged out successfully!', 'success')
     return redirect('/')
 
 
-# 🔷 Signup
+# ========================================
+# 10. ADDITIONAL ROUTES (SIGNUP, PAGES)
+# ========================================
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -242,8 +284,8 @@ def signup():
         stage = request.form.get('stage')
         valuation = request.form.get('valuation')
         
-        if not name or not city or not stage or not valuation:
-            flash('All fields required', 'danger')
+        if not all([name, city, stage, valuation]):
+            flash('All fields are required', 'danger')
             return redirect('/signup')
         
         try:
@@ -252,210 +294,20 @@ def signup():
                 (name, city, stage, int(valuation))
             )
             db.commit()
-            startup_id = cursor.lastrowid
             session['role'] = 'startup'
-            session['startup_id'] = startup_id
-            flash('Registered successfully!', 'success')
+            session['startup_id'] = cursor.lastrowid
+            flash('Startup registered successfully!', 'success')
             return redirect('/dashboard')
         except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
+            flash(f'Registration failed: {str(e)}', 'danger')
     
     return render_template('signup.html')
 
 
-# 🔷 Signup Investor
-@app.route('/signup_investor', methods=['GET', 'POST'])
-def signup_investor():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        firm = request.form.get('firm')
-        city = request.form.get('city')
-        min_invest = request.form.get('min_invest')
-        max_invest = request.form.get('max_invest')
-        
-        if not name or not firm or not city or not min_invest or not max_invest:
-            flash('All fields required', 'danger')
-            return redirect('/signup_investor')
-        
-        try:
-            cursor.execute(
-                "INSERT INTO Investors (name, firm, city, min_invest, max_invest) VALUES (%s, %s, %s, %s, %s)",
-                (name, firm, city, int(min_invest), int(max_invest))
-            )
-            db.commit()
-            investor_id = cursor.lastrowid
-            session['role'] = 'investor'
-            session['investor_id'] = investor_id
-            flash('Registered successfully!', 'success')
-            return redirect('/dashboard')
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
-    
-    return render_template('signup_investor.html')
-
-
-# 🔷 Home page
-@app.route('/home')
-def home():
-    return render_template('home.html')
-
-
-# 🔷 About page
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-
-# 🔷 Contact page
-@app.route('/contact', methods=['GET', 'POST'])
-def contact():
-    if request.method == 'POST':
-        flash('Thank you! We will get back to you soon.', 'success')
-        return redirect('/contact')
-    
-    return render_template('contact.html')
-
-
-# 🔷 Privacy page
-@app.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
-
-
-# 🔷 Terms page
-@app.route('/terms')
-def terms():
-    return render_template('terms.html')
-
-
-# 🔷 Saved Startups
-@app.route('/saved')
-def saved():
-    role = session.get('role')
-    
-    if not role or role != 'investor':
-        return redirect('/dashboard')
-    
-    cursor.execute("SELECT * FROM Startups ORDER BY RAND() LIMIT 5")
-    data = cursor.fetchall()
-    
-    return render_template('saved.html', startups=data)
-
-
-# 🔷 Messages
-@app.route('/messages')
-def messages():
-    role = session.get('role')
-    
-    if not role:
-        return redirect('/')
-    
-    demo_messages = [
-        {'from': 'Venture Capital Partners', 'subject': 'Interested in your startup', 'time': '2 hours ago'},
-        {'from': 'Angel Investor Group', 'subject': 'Request for meeting', 'time': 'Yesterday'},
-        {'from': 'Tech Incubator', 'subject': 'Accelerator invitation', 'time': '2 days ago'},
-    ]
-    
-    return render_template('messages.html', messages=demo_messages, role=role)
-
-
-# 🔷 Active Deals
-@app.route('/deals')
-def deals():
-    role = session.get('role')
-    
-    if not role or role != 'investor':
-        return redirect('/dashboard')
-    
-    cursor.execute("SELECT * FROM Startups ORDER BY valuation DESC")
-    data = cursor.fetchall()
-    
-    return render_template('deals.html', startups=data)
-
-
-# 🔷 Analytics
-@app.route('/analytics')
-def analytics():
-    role = session.get('role')
-    
-    if not role:
-        return redirect('/')
-    
-    # Get startup analytics if startup
-    startup_id = session.get('startup_id')
-    my_startup = None
-    investor_count = 0
-    
-    if role == 'startup' and startup_id:
-        cursor.execute("SELECT * FROM Startups WHERE startup_id = %s", (startup_id,))
-        my_startup = cursor.fetchone()
-        
-        # Count investors who showed interest (mock data)
-        investor_count = 12
-        
-        # Mock analytics data
-        views_data = [45, 52, 38, 65, 48, 72, 58, 85, 62, 78, 95, 88]
-        invest_data = [2, 3, 1, 4, 2, 5, 3, 6, 4, 5, 7, 6]
-    
-    # Get global stats for investor
-    total_startups = 0
-    total_investors = 0
-    avg_valuation = 0
-    
-    if role == 'investor':
-        cursor.execute("SELECT COUNT(*) as count FROM Startups")
-        total_startups = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT COUNT(*) as count FROM Investors")
-        total_investors = cursor.fetchone()['count']
-        
-        cursor.execute("SELECT AVG(valuation) as avg FROM Startups")
-        avg_valuation = cursor.fetchone()['avg'] or 0
-    
-    return render_template('analytics.html', 
-                      role=role,
-                      my_startup=my_startup,
-                      investor_count=investor_count,
-                      total_startups=total_startups,
-                      total_investors=total_investors,
-                      avg_valuation=int(avg_valuation))
-
-
-# 🔷 Startup Messages (for startup role)
-@app.route('/startup_messages')
-def startup_messages():
-    role = session.get('role')
-    
-    if not role or role != 'startup':
-        return redirect('/dashboard')
-    
-    # Mock messages for startup
-    demo_messages = [
-        {'from': 'Sequoia Capital', 'subject': 'Interested in Series B', 'time': '2 hours ago'},
-        {'from': 'Y Combinator', 'subject': 'Application status', 'time': 'Yesterday'},
-        {'from': 'Tiger Global', 'subject': 'Meeting request', 'time': '3 days ago'},
-    ]
-    
-    return render_template('startup_messages.html', messages=demo_messages)
-
-
-# 🔷 Startup Documents (for startup role)
-@app.route('/documents')
-def documents():
-    role = session.get('role')
-    
-    if not role or role != 'startup':
-        return redirect('/dashboard')
-    
-# Mock documents
-    docs = [
-        {'name': 'Pitch Deck 2024.pdf', 'size': '2.4 MB', 'date': 'May 1, 2024'},
-        {'name': 'Business Plan.pdf', 'size': '1.8 MB', 'date': 'Apr 15, 2024'},
-        {'name': 'Financials.xlsx', 'size': '540 KB', 'date': 'Apr 20, 2024'},
-    ]
-    
-    return render_template('documents.html', documents=docs)
-
-
+# ========================================
+# MAIN EXECUTION
+# Start Flask development server on port 5050
+# ========================================
 if __name__ == '__main__':
     app.run(debug=True, port=5050)
+
